@@ -1,13 +1,13 @@
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local localPlayer = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
 local aimbotEnabled = false
 local FOV_RADIUS = 150
-local MAX_DISTANCE = 100
+local MAX_DISTANCE = 1000  -- alcance máximo para mirar (ajuste conforme o mapa)
 local FOV_COLOR = Color3.fromRGB(255, 255, 0)
 
 -- Cria ScreenGui
@@ -87,7 +87,11 @@ colorButton.TextColor3 = Color3.new(1,1,1)
 colorButton.Font = Enum.Font.SourceSansBold
 colorButton.TextSize = 18
 
--- Desenho do FOV
+-- Remove círculo antigo (se existir)
+if _G.LUCCAHUB_FOV_CIRCLE then
+    _G.LUCCAHUB_FOV_CIRCLE:Remove()
+end
+
 local circle = Drawing.new("Circle")
 circle.Radius = FOV_RADIUS
 circle.Color = FOV_COLOR
@@ -96,14 +100,15 @@ circle.Transparency = 0.6
 circle.Filled = false
 circle.Visible = true
 
+_G.LUCCAHUB_FOV_CIRCLE = circle
+
 -- ESP Boxes
 local espBoxes = {}
 
--- Cria ESP por player
 local function createESP(player)
     if espBoxes[player] then return end
     local box = Drawing.new("Square")
-    box.Color = Color3.fromRGB(255,0,0)
+    box.Color = Color3.fromRGB(255, 0, 0)
     box.Thickness = 2
     box.Transparency = 0.8
     box.Visible = false
@@ -117,14 +122,12 @@ local function removeESP(player)
     end
 end
 
--- Inicializa ESPs dos jogadores existentes
 for _,plr in pairs(Players:GetPlayers()) do
     if plr ~= localPlayer then
         createESP(plr)
     end
 end
 
--- Eventos de jogador entrando/saindo
 Players.PlayerAdded:Connect(function(plr)
     if plr ~= localPlayer then
         createESP(plr)
@@ -135,7 +138,6 @@ Players.PlayerRemoving:Connect(function(plr)
     removeESP(plr)
 end)
 
--- Função de busca
 local function getClosestEnemy()
     local closest = nil
     local minDistScreen = FOV_RADIUS
@@ -163,7 +165,6 @@ local function getClosestEnemy()
     return closest
 end
 
--- Toggle Aimbot
 toggleButton.MouseButton1Click:Connect(function()
     aimbotEnabled = not aimbotEnabled
     if aimbotEnabled then
@@ -177,7 +178,6 @@ toggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Botões FOV
 fovIncreaseButton.MouseButton1Click:Connect(function()
     FOV_RADIUS = FOV_RADIUS + 25
     circle.Radius = FOV_RADIUS
@@ -197,13 +197,12 @@ colorButton.MouseButton1Click:Connect(function()
     circle.Color = FOV_COLOR
 end)
 
--- Loop principal
 RunService.RenderStepped:Connect(function()
-    -- Atualiza círculo
+    -- Círculo fixo no centro da tela
     circle.Position = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)
     circle.Visible = true
 
-    -- Atualiza ESPs
+    -- Atualiza ESP
     for player, box in pairs(espBoxes) do
         if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local hrp = player.Character.HumanoidRootPart
@@ -222,18 +221,18 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Aimbot
+    -- Aimbot instantâneo
     if not aimbotEnabled then return end
-
     local success, err = pcall(function()
         local target = getClosestEnemy()
         if target and target.Character and target.Character:FindFirstChild("Head") then
             local headPos = target.Character.Head.Position
-            camera.CFrame = CFrame.lookAt(camera.CFrame.Position, headPos)
+            local camPos = camera.CFrame.Position
+            camera.CFrame = CFrame.new(camPos, headPos) -- trava instantânea no alvo
         end
     end)
-
     if not success then
         warn("Erro no aimbot:", err)
     end
 end)
+
