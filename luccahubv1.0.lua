@@ -6,8 +6,9 @@ local localPlayer = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
 local aimbotEnabled = false
+local noclipEnabled = false
 local FOV_RADIUS = 150
-local MAX_DISTANCE = 1000  -- alcance máximo para mirar (ajuste conforme o mapa)
+local MAX_DISTANCE = 1000
 local FOV_COLOR = Color3.fromRGB(255, 255, 0)
 
 -- Cria ScreenGui
@@ -17,7 +18,7 @@ screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 
 -- Frame principal
 local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 240, 0, 200)
+frame.Size = UDim2.new(0, 240, 0, 240)
 frame.Position = UDim2.new(0, 10, 0, 10)
 frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 frame.BorderSizePixel = 0
@@ -36,7 +37,7 @@ titleLabel.Font = Enum.Font.SourceSansBold
 titleLabel.TextSize = 18
 titleLabel.TextXAlignment = Enum.TextXAlignment.Center
 
--- Botão Toggle
+-- Botão Toggle Aimbot
 local toggleButton = Instance.new("TextButton", frame)
 toggleButton.Size = UDim2.new(0, 200, 0, 30)
 toggleButton.Position = UDim2.new(0, 20, 0, 25)
@@ -87,7 +88,17 @@ colorButton.TextColor3 = Color3.new(1,1,1)
 colorButton.Font = Enum.Font.SourceSansBold
 colorButton.TextSize = 18
 
--- Remove círculo antigo (se existir)
+-- Botão Noclip
+local noclipButton = Instance.new("TextButton", frame)
+noclipButton.Size = UDim2.new(0, 200, 0, 25)
+noclipButton.Position = UDim2.new(0, 20, 0, 180)
+noclipButton.Text = "Ativar Noclip"
+noclipButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+noclipButton.TextColor3 = Color3.new(1,1,1)
+noclipButton.Font = Enum.Font.SourceSansBold
+noclipButton.TextSize = 18
+
+-- Remove círculo antigo
 if _G.LUCCAHUB_FOV_CIRCLE then
     _G.LUCCAHUB_FOV_CIRCLE:Remove()
 end
@@ -178,6 +189,24 @@ toggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
+noclipButton.MouseButton1Click:Connect(function()
+    noclipEnabled = not noclipEnabled
+    if noclipEnabled then
+        noclipButton.Text = "Desativar Noclip"
+    else
+        noclipButton.Text = "Ativar Noclip"
+        -- Reativa colisão ao desativar
+        local character = localPlayer.Character
+        if character then
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end)
+
 fovIncreaseButton.MouseButton1Click:Connect(function()
     FOV_RADIUS = FOV_RADIUS + 25
     circle.Radius = FOV_RADIUS
@@ -198,11 +227,23 @@ colorButton.MouseButton1Click:Connect(function()
 end)
 
 RunService.RenderStepped:Connect(function()
-    -- Círculo fixo no centro da tela
+    -- Círculo no centro
     circle.Position = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)
     circle.Visible = true
 
-    -- Atualiza ESP
+    -- Noclip: desativa colisão constantemente
+    if noclipEnabled then
+        local character = localPlayer.Character
+        if character then
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end
+
+    -- ESP
     for player, box in pairs(espBoxes) do
         if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local hrp = player.Character.HumanoidRootPart
@@ -221,18 +262,17 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Aimbot instantâneo
+    -- Aimbot
     if not aimbotEnabled then return end
     local success, err = pcall(function()
         local target = getClosestEnemy()
         if target and target.Character and target.Character:FindFirstChild("Head") then
             local headPos = target.Character.Head.Position
             local camPos = camera.CFrame.Position
-            camera.CFrame = CFrame.new(camPos, headPos) -- trava instantânea no alvo
+            camera.CFrame = CFrame.new(camPos, headPos)
         end
     end)
     if not success then
         warn("Erro no aimbot:", err)
     end
 end)
-
