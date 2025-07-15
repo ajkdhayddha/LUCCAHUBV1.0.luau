@@ -8,7 +8,7 @@ local camera = workspace.CurrentCamera
 local aimbotEnabled = false
 local noclipEnabled = false
 local FOV_RADIUS = 150
-local MAX_DISTANCE = 1000
+local MAX_DISTANCE = 200
 local FOV_COLOR = Color3.fromRGB(255, 255, 0)
 
 -- Cria ScreenGui
